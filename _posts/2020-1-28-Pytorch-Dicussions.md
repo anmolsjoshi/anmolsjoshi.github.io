@@ -4,10 +4,10 @@ title: PyTorch Discussion Tips and Tricks
 ---
 
 I did a deep dive of the discussion forum of PyTorch to find frequently asked questions, tips and tricks, and helpful 
-techniques. If you haven't checked it out, here's a link - https://discuss.pytorch.org
+techniques. If you haven't checked it out, here's a link - <https://discuss.pytorch.org>
 
-It's an extremely well moderated forum, I'd really like to thank the following people for their amazing contributions to 
-this forum and helping novices such as me get there start in training neural networks in PyTorch.
+It's an extremely well moderated forum, I'd really like to thank the users for their amazing contributions to 
+this forum and helping novices like me get started with training neural networks.
 
 ## Exponential Moving Average
 
@@ -16,9 +16,7 @@ process and using Stochastic Gradient Descent can lead to erratic updates to mod
 in your training dataset. To avoid this, it's helpful to create a copy of the model at the start of training, and
 keep a moving average of the model weights to evaluate the model's performance. 
 
-< Insert Polyak Average Math >
-
-< Insert EMA Math >
+&theta;<sub>t</sub><sup>*</sup> = &alpha; &theta;<sub>t-1</sub> + (1-&alpha;) &theta;<sub>t</sub>
 
 ```python
 class EMA:
@@ -97,22 +95,22 @@ for epoch in range(num_epochs):
 ``` 
 
 Code is from: - 
-* https://github.com/chrischute/squad/blob/master/util.py#L174-L220
-* https://github.com/tensorflow/tensorflow/blob/r1.13/tensorflow/python/training/moving_averages.py#L252-L532
+* <https://github.com/chrischute/squad/blob/master/util.py#L174-L220>
+* <https://github.com/tensorflow/tensorflow/blob/r1.13/tensorflow/python/training/moving_averages.py#L252-L532>
                  
 ## L1/L2 Regularization
 Adding L2 regularization to training models. PyTorch's Optim package provides a wide variety of optimizers, all of them
-come with a *weight_decay* parameter. This parameter adds a l2 regularization update to the gradients to all the model
+come with a *weight_decay* parameter. This parameter adds a L2 regularization update to the gradients to all the model
 weights. Let's examine the torch.optim.SGD source code. 
 
 People might be more familiar with L2 regularization in the final loss calculation, 
 
-< Insert L2 regularization math >
+loss = criterion(y_pred, y_true) + 0.5 * ||W||<sup>2</sup>
 
 Below, you'll see that L2 regularization is not applied to loss, it's directly added to the gradient. To better understand
 this, let's differentiate the above expression.
 
-< Insert gradient update math >
+dW = dC/dW + W
 
 PyTorch's inplace operation of add_ is used here, it simply takes the gradient of the model parameter and adds it to the product
 of weight_decay and the value of the parameter. See docs here. 
@@ -289,9 +287,9 @@ of the input is maintained in between layers, and no saturation of layer outputs
 
 There has been extensive research on this subject, there are few papers that are considered standard and are used widely.
 
-[Xavier Initialization]() - Initialize weights with a distribution given below, works best for tanh, softplus activations.
+[Xavier Initialization](http://proceedings.mlr.press/v9/glorot10a/glorot10a.pdf) - Initialize weights with a distribution given below, works best for tanh, softplus activations.
 
-[Kaiming He Initialization]() - Works best for ReLu and its variants. Also, default for PyTorch, considered a reasonable default given popularity of Relu and its variants.
+[Kaiming He Initialization](https://arxiv.org/abs/1502.01852) - Works best for ReLu and its variants. Also, default for PyTorch, considered a reasonable default given popularity of Relu and its variants.
 
 Both these initializations have normal and random distribution variants.
 
@@ -307,7 +305,7 @@ def weights_init(m):
         m.bias.data.fill_(0)
 ```
 
-https://discuss.pytorch.org/t/how-to-initialize-the-conv-layers-with-xavier-weights-initialization/8419
+<https://discuss.pytorch.org/t/how-to-initialize-the-conv-layers-with-xavier-weights-initialization/8419>
 
 ## pad_sequence
 **pad_sequence** is a helpful function that accepts a list of tensors and pads them along a certain dimension.
@@ -389,9 +387,9 @@ Closely examine the output of the embeddings and packed sequence, you'll see the
 sentence, followed by the first input of the other inputs in decreasing lengths. Similarly the second row, and so on. 
 
 You'll also notice batch_sizes, this creates batches of batch_sizes and passes it through the RNN. Where do these come from?
-first batch -> first row of each sentences
-second batch -> second row of each sentences (this completes the shortest sentence)
-third batch -> third row of the remaining two sentences
+* first batch -> first row of each sentences
+* second batch -> second row of each sentences (this completes the shortest sentence)
+* third batch -> third row of the remaining two sentences
 
 You get the idea! 
 
@@ -544,12 +542,11 @@ training and validating neural networks using PyTorch.
 Ignite offers accuracy, precision and recall with multilabel options, these work for a variety of input types and have been 
 tested against scikit-learn's implementations of these metrics. 
 
-https://gist.github.com/bartolsthoorn/36c813a4becec1b260392f5353c8b7cc
+<https://gist.github.com/bartolsthoorn/36c813a4becec1b260392f5353c8b7cc>
 
 ```python
 from ignite.metrics import Accuracy, Precision, Recall
-
-
+acc = Accuracy(is_multilabel=True)
 ``` 
 ## Dropout Behaviour during Training and Testing
 It's important to know the theory and inner workings of the models you create and their behaviour under different conditions. 
@@ -668,9 +665,9 @@ def clip_grad(v, min, max):
 
 There is an important distinction to make between the two methods.
 
-https://arxiv.org/abs/1308.0850
-https://discuss.pytorch.org/t/proper-way-to-do-gradient-clipping/191/22
-https://github.com/t-vi/pytorch-tvmisc/blob/master/misc/graves_handwriting_generation.ipynb
+- <https://arxiv.org/abs/1308.0850>
+- <https://discuss.pytorch.org/t/proper-way-to-do-gradient-clipping/191/22>
+- <https://github.com/t-vi/pytorch-tvmisc/blob/master/misc/graves_handwriting_generation.ipynb>
 
 ## Removed Last Two Layers for PreTraining Purposes
 
