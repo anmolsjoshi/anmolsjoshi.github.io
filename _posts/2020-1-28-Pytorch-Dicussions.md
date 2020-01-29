@@ -9,7 +9,7 @@ techniques. If you haven't checked it out, here's a link - https://discuss.pytor
 It's an extremely well moderated forum, I'd really like to thank the following people for their amazing contributions to 
 this forum and helping novices such as me get there start in training neural networks in PyTorch.
 
-### Exponential Moving Average
+## Exponential Moving Average
 
 Implementing Polyak Averaging/Exponential Moving Average of model weights. Training neural networks can be a tricky
 process and using Stochastic Gradient Descent can lead to erratic updates to model weights from different batches of
@@ -100,7 +100,7 @@ Code is from: -
 * https://github.com/chrischute/squad/blob/master/util.py#L174-L220
 * https://github.com/tensorflow/tensorflow/blob/r1.13/tensorflow/python/training/moving_averages.py#L252-L532
                  
-### L1/L2 Regularization
+## L1/L2 Regularization
 Adding L2 regularization to training models. PyTorch's Optim package provides a wide variety of optimizers, all of them
 come with a *weight_decay* parameter. This parameter adds a l2 regularization update to the gradients to all the model
 weights. Let's examine the torch.optim.SGD source code. 
@@ -254,13 +254,13 @@ Note that we initialize loss as torch.FloatTensor that requires gradient. This i
 the effect of regualarization for desired backpropogation results. 
 
 
-### Correct Usage of Loss Functions
+## Correct Usage of Loss Functions
 Using incorrect inputs to calculate loss and metrics. We see this a lot in tutorials and I'm ashamed to admit it that 
 I've been guilty of this too. This usually happens in classification problems where sigmoid or sotfmax is applied to the 
 output of the last layer.
 
 I caught this issue when I switched from Keras to PyTorch. Keras is a fantastic tool, where a user can build networks 
-quickly and efficiently. But it's important to pay attention to the source code. [Look here!](https://github.com/keras-team/keras/blob/master/keras/backend/tensorflow_backend.py#L3527-L3567)
+quickly and efficiently. But it's important to pay attention to the source code. [Look here!](https://github.com/keras-team/keras/blob/7a39b6c62d43c25472b2c2476bd2a8983ae4f682/keras/backend/numpy_backend.py#L333-L339)
 Keras accounts for the user applying softmax to the output of the last layer.
 
 ```python
@@ -282,7 +282,7 @@ loss = nn.NLLLoss()
 Although applying softmax results in probabilities of the network output, it is essentially unnecessary as taking the
 max of the raw logits vs max of the softmax-ed logits gives the same answer. 
 
-### Initialization
+## Initialization
 To prevent headaches in training your network, one must ensure correct initialization of weights at the start of training
 process. Proper initialization of weights results in efficient gradient flow during backpropogation, ensures the distribution/variance
 of the input is maintained in between layers, and no saturation of layer outputs. 
@@ -309,7 +309,7 @@ def weights_init(m):
 
 https://discuss.pytorch.org/t/how-to-initialize-the-conv-layers-with-xavier-weights-initialization/8419
 
-### pad_sequence
+## pad_sequence
 **pad_sequence** is a helpful function that accepts a list of tensors and pads them along a certain dimension.
 This is helpful in creating batches. See below. 
 
@@ -328,7 +328,7 @@ padded_sentences = pad_sequence(sentences, batch_first=True)
 3 tensors of different lengths are padded to the length of the longest tensor. Note the default padding value is 0.
 If you specify batch_first, make sure that the rest of your calculations and transformations are consistent with that.
 
-### pack_pad_sequence
+## pack_pad_sequence
 **pack_pad_sequence** is a function that saves on comuptation of RNN. Let's assume that we're working with the batch
 of sentences above. We pass it through an Embedding layer with the padding_idx specified as 0. 
 
@@ -395,7 +395,7 @@ third batch -> third row of the remaining two sentences
 
 You get the idea! 
 
-### pad_packed_sequence
+## pad_packed_sequence
 **pad_packed_sequence** is a function to convert the packed sequences back to their padded form. Here you need to specify 
 the length to pad the input to. The input is then padded with zero vectors (or value of your choosing). It's important
 to sort the padded output back the original order, this is to maintain order with the target variable.
@@ -429,7 +429,7 @@ padded_sentences = padded_sentences[unsort_idx]
 #          [ 0.0000,  0.0000,  0.0000,  0.0000]]], grad_fn=<IndexBackward>)
 ```
 
-### Many to One LSTM
+## Many to One LSTM
 Many to One Problems. If you're unfamiliar with RNN's or this variant of classification problem, please check out
 Andrej Karpathy's guide to RNN - it's one of the most helpful resources in understanding RNN's. Many to One simply
 means that your input has many timesteps and output is just one item. An example of this is sentence classification, 
@@ -515,7 +515,7 @@ class SentimentClassifier(nn.Module):
         return x
 ```
 
-### Custom Loss Function
+## Custom Loss Function
 Creating custom loss functions is a question that comes up quite often, its as easy as defining a function, no need 
 for nn.Module! As long as the inputs to the function have gradients enabled, you'll get PyTorch's autograd for free!
 Here's an example of MSE Loss.
@@ -527,7 +527,7 @@ def mse_loss(y, y_pred):
     return ((y_pred - y) ** 2).sum() / batch_size
 ```
     
-### Multilabel Classification
+## Multilabel Classification
 A popular problem in machine learning is that of multilabel classification. What is it? It means each a sample of your data
 has multiple labels related to it. For example, you have a dataset with red dresses, blue dresses, red cars and blue cars. 
 You can set this is up as a multilabel problem where each sample will have a label of \['red/blue', 'car/dress']. How you handle this?
@@ -551,7 +551,7 @@ from ignite.metrics import Accuracy, Precision, Recall
 
 
 ``` 
-### Dropout Behaviour during Training and Testing
+## Dropout Behaviour during Training and Testing
 It's important to know the theory and inner workings of the models you create and their behaviour under different conditions. 
 PyTorch implements inverted dropout, meaning that in train mode the inputs are masked and scaled by 1/p (p is Dropout Probability).
 In eval mode, inputs pass through without scaling or masking. Why are inputs scaled during training? This is done to keep a similar
@@ -572,7 +572,7 @@ dropout(x)
 
 During training mode, you'll see that some inputs are masked and the rest are multiplied by 2 (1/0.5 = 2).
 
-### Batch Normalization - Running Metrics - Training and Testing
+## Batch Normalization - Running Metrics - Training and Testing
 
 Batch Normalization was one of the most integral additions to the field of deep learning over the last few years. It provides
 protection against poor initialization schemes and bad activation choices. It is important to understand batch normalization
@@ -631,14 +631,14 @@ print (batchnorm.running_var)
 # tensor([0.7460, 0.7557, 0.7471, 0.7420])
 ```
 
-### Proper Method of Running Inference
+## Proper Method of Running Inference
 Not much information to add here, from the last two points - it's important to turn eval mode of the model to ensure the 
 the layers that have a train and eval mode are using the correct mode. 
 
 Additionally, its important to use `with torch.no_grad():` over the validation processing to prevent calculations of gradients
 during inference. This results in speed-ups by removing unnecessary computations.
 
-### How to Clip Gradients
+## How to Clip Gradients
 From the discussion forums, I found two ways for performing gradient clipping in PyTorch. 
 
 First option is to use **torch.nn.utils.clip_grad_norm_**, it clips the norm of the gradients as if they were a single vector
@@ -672,14 +672,14 @@ https://arxiv.org/abs/1308.0850
 https://discuss.pytorch.org/t/proper-way-to-do-gradient-clipping/191/22
 https://github.com/t-vi/pytorch-tvmisc/blob/master/misc/graves_handwriting_generation.ipynb
 
-### Removed Last Two Layers for PreTraining Purposes
+## Removed Last Two Layers for PreTraining Purposes
 
-### Multiple Loss Functions with Same Input
+## Multiple Loss Functions with Same Input
 
-### How to Freeze Model
+## How to Freeze Model
 
-### Added hook to debug NaNs in gradients
+## Added hook to debug NaNs in gradients
 https://github.com/pytorch/pytorch/issues/15131#issuecomment-447149154
 
 
-### Batch Normalization, bias=False
+## Batch Normalization, bias=False
