@@ -305,7 +305,7 @@ def weights_init(m):
         m.bias.data.fill_(0)
 ```
 
-<https://discuss.pytorch.org/t/how-to-initialize-the-conv-layers-with-xavier-weights-initialization/8419>
+- <https://discuss.pytorch.org/t/how-to-initialize-the-conv-layers-with-xavier-weights-initialization/8419>
 
 ## pad_sequence
 **pad_sequence** is a helpful function that accepts a list of tensors and pads them along a certain dimension.
@@ -536,18 +536,20 @@ of your model by raw logits.
 Options of loss functions are **MultiLabelSoftMarginLoss** and **BCEWithLogitsLoss**, note that these two will output the same result.
 [See here](https://discuss.pytorch.org/t/what-is-the-difference-between-bcewithlogitsloss-and-multilabelsoftmarginloss/14944/12)
 
-To calculate metrics, I'd like to shamelessly plug a library I maintain called [Ignite](), it provides boilerplate code to help in
+To calculate metrics, I'd like to shamelessly plug a library, I contribute to, called [Ignite](https://pytorch.org/ignite), it provides boilerplate code to help in
 training and validating neural networks using PyTorch. 
 
 Ignite offers accuracy, precision and recall with multilabel options, these work for a variety of input types and have been 
 tested against scikit-learn's implementations of these metrics. 
 
-<https://gist.github.com/bartolsthoorn/36c813a4becec1b260392f5353c8b7cc>
-
 ```python
-from ignite.metrics import Accuracy, Precision, Recall
+from ignite.metrics import Accuracy
 acc = Accuracy(is_multilabel=True)
 ``` 
+
+- <https://gist.github.com/bartolsthoorn/36c813a4becec1b260392f5353c8b7cc>
+
+
 ## Dropout Behaviour during Training and Testing
 It's important to know the theory and inner workings of the models you create and their behaviour under different conditions. 
 PyTorch implements inverted dropout, meaning that in train mode the inputs are masked and scaled by 1/p (p is Dropout Probability).
@@ -669,14 +671,205 @@ There is an important distinction to make between the two methods.
 - <https://discuss.pytorch.org/t/proper-way-to-do-gradient-clipping/191/22>
 - <https://github.com/t-vi/pytorch-tvmisc/blob/master/misc/graves_handwriting_generation.ipynb>
 
-## Removed Last Two Layers for PreTraining Purposes
+## Batch Normalization, bias=False
+
+Although this isn't a big deal, I noticed this in a few tutorials and decided to finally read the Batch Normalization paper. 
+When using Batch Normalization, the bias from preceeding layer is set to False. This is because BatchNorm layer automatically 
+adds a bias term, and its order of operations yields the preceeding layer's bias unchanged and unoptimized.
+
+This is because batch normalization subtracts the mean of the batch from the input. If a constant is added to the input, 
+the difference of the input and its mean will be the same as if the constant was not added.
+
+See the simple example below:
+
+```python
+import numpy as np
+
+x = np.array([1, 2, 3, 4, 5, 6, 7])
+print(x - np.mean(x))
+# [-3. -2. -1.  0.  1.  2.  3.]
+
+x += 1
+print(x - np.mean(x))
+# [-3. -2. -1.  0.  1.  2.  3.]
+```
+
+Let's see this in action. In the example below, I set up two models, only difference being bias flag in the linear layer. For both models, 
+I ensure that all the parameters of the model are the same. 
+
+Given the same input, same optimization methods, we optimize the model for 1000 steps. 
+
+At the end, we see that linear weight of the layers are the same showing that having a bias had no effect on the optimization.
+Another observation is that bias of the model is unchanged even after 1000 iterations.
+
+This further proves that bias of preceeding layer has no effect when using Batch normalization.
+
+```python
+import torch
+import torch.nn as nn
+from torch.optim import SGD
+
+
+class Model1(nn.Module):
+    def __init__(self):
+        super(Model1, self).__init__()
+        self.linear = nn.Linear(4, 8)
+        self.batch_norm = nn.BatchNorm1d(8)
+        self.fc = nn.Linear(8, 1)
+
+    def forward(self, x):
+        x = self.linear(x)
+        x = self.batch_norm(x)
+        x = self.fc(x)
+        return x
+
+
+class Model2(nn.Module):
+    def __init__(self):
+        super(Model2, self).__init__()
+        self.linear = nn.Linear(4, 8, bias=False)
+        self.batch_norm = nn.BatchNorm1d(8)
+        self.fc = nn.Linear(8, 1)
+
+    def forward(self, x):
+        x = self.linear(x)
+        x = self.batch_norm(x)
+        x = self.fc(x)
+        return x
+    
+model1 = Model1()
+model2 = Model2()
+model2.linear.weight = model1.linear.weight
+model2.fc.weight = model1.fc.weight
+model2.fc.bias = model1.fc.bias
+
+initial_bias = model1.linear.bias
+initial_bias
+# Parameter containing:
+# tensor([ 0.3368, -0.1422,  0.1352,  0.4685, -0.1898, -0.3018,  0.2751,  0.0719],
+#        requires_grad=True)
+
+x = torch.rand(2, 4)
+y = torch.rand(2, 1)
+criterion = nn.MSELoss()
+optimizer1 = SGD(model1.parameters(), lr=1e-3)
+optimizer2 = SGD(model2.parameters(), lr=1e-3)
+
+for _ in range(1000):
+    model1.zero_grad()
+    model2.zero_grad()
+
+    y1 = model1(x)
+    y2 = model2(x)
+
+    loss1 = criterion(y1, y)
+    loss2 = criterion(y2, y)
+
+    loss1.backward()
+    loss2.backward()
+
+    optimizer1.step()
+    optimizer2.step()
+
+model1.linear.weight
+
+# Parameter containing:
+# tensor([[ 0.0820, -0.3595, -0.4871, -0.3785],
+#         [-0.1660,  0.1733,  0.3810, -0.1020],
+#         [-0.4860, -0.2699, -0.1235,  0.3905],
+#         [ 0.3131, -0.1860, -0.1112, -0.2838],
+#         [-0.3188, -0.2247, -0.2293, -0.3067],
+#         [ 0.2633, -0.4191, -0.0386, -0.4332],
+#         [-0.1564,  0.4842,  0.1528, -0.3146],
+#         [-0.0523,  0.2751, -0.4138, -0.3792]], requires_grad=True)
+
+model2.linear.weight
+# Parameter containing:
+# tensor([[ 0.0820, -0.3595, -0.4871, -0.3785],
+#         [-0.1660,  0.1733,  0.3810, -0.1020],
+#         [-0.4860, -0.2699, -0.1235,  0.3905],
+#         [ 0.3131, -0.1860, -0.1112, -0.2838],
+#         [-0.3188, -0.2247, -0.2293, -0.3067],
+#         [ 0.2633, -0.4191, -0.0386, -0.4332],
+#         [-0.1564,  0.4842,  0.1528, -0.3146],
+#         [-0.0523,  0.2751, -0.4138, -0.3792]], requires_grad=True)
+
+torch.allclose(model1.linear.bias, initial_bias)
+# True
+```
 
 ## Multiple Loss Functions with Same Input
 
-## How to Freeze Model
+Below we setup our code with two loss functions, one that calculates the sum of difference of squares of the input and output.
+The other does the same except that the input is raised to the fourth power. 
+
+We calculate the gradient separately and can confirm that for the first loss function, the gradient wrt input should be 2 times the input.
+For the second function, it is 4 times the cube of the input.
+
+Finally, we see that PyTorch's autograd respects chain rule as the gradients wrt x are the sum of the gradients calculated separately.
+
+```python
+import torch
+import torch.nn as nn
+
+x = torch.tensor([1.0, 2.0, 3.0], requires_grad=True)
+y_true = torch.tensor([0.0, 0.0, 0.0])
+
+def loss1(x, y_true):
+    y = x ** 2
+    return torch.abs(y - y_true).sum()
+
+
+def loss2(x, y_true):
+    y = x ** 4
+    return torch.abs(y - y_true).sum()
+
+
+loss = loss1(x, y_true)
+loss.backward()
+x.grad
+# tensor([2., 4., 6.])
+
+x.grad.data.zero_()
+loss = loss2(x, y_true)
+loss.backward()
+x.grad
+# tensor([  4.,  32., 108.])
+
+x.grad.data.zero_()
+loss = loss1(x, y_true) + loss2(x, y_true)
+loss.backward()
+x.grad
+# tensor([  6.,  36., 114.])
+```
+
 
 ## Added hook to debug NaNs in gradients
-https://github.com/pytorch/pytorch/issues/15131#issuecomment-447149154
+```python
+import numpy as np
+import torch
+import torch.nn as nn
 
+def create_hook(name):
+    def hook(grad):
+        print(name, grad)
+    return hook
 
-## Batch Normalization, bias=False
+x = torch.tensor([1.0, np.nan])
+k = nn.Parameter(0.01*torch.randn(1))
+
+between = k.repeat(2) # need the extra dimensions in order to fix the NaN gradient
+between.register_hook(create_hook('between'))
+
+y = between*x
+
+masked = y[:-1]
+
+loss = masked.sum()
+print(f'loss: {loss}')
+
+loss.backward()
+# loss: -0.01673412136733532
+# between tensor([1., nan])
+```
+- <https://github.com/pytorch/pytorch/issues/15131#issuecomment-447149154>
